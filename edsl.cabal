@@ -32,9 +32,16 @@ library
                        LaCarte,
                        LaCarte2,
                        Contracts,
-                       Contracts2
-  build-depends:       base >= 4.7 && < 5,
-                       template-haskell >= 2.11 && < 3
+                       Contracts2,
+                       Contracts3,
+                       Contracts4,
+                       SimpleLLVM
+  build-depends:       base >= 4.7 && < 5
+                     , template-haskell >= 2.11 && < 3
+                     , llvm-hs >= 4.1
+                     , llvm-hs-pure >= 4.1
+                     , mtl >= 2.2
+                     , bytestring >= 0.10
   default-language:    Haskell2010
 
 executable edsl-exe

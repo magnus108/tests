@@ -118,10 +118,11 @@ a1, a2 :: Asset
 a1 = Asset [(d1, 5), (d2, 5)]
 a2 = Asset [(d1, 4), (d2, 6)]
 a3 = Asset [(d1, 4), (d2, 8)]
+a4 = Asset [(d1, 1), (d2, 3)]
 
 
 t :: Double
-t = evalE $ bestOf [lift a1, lift a2, lift a3] (lift d1) (lift d2)
+t = evalE $ bestOf [lift a1, lift a2, lift a3, lift a4] (lift d1) (lift d2)
 
 
 bestOf :: [E Asset] -> E Date -> E Date -> EDouble

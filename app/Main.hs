@@ -12,9 +12,11 @@ import qualified TemplateHaskellSimple2
 import qualified TemplateHaskellTuples2
 import qualified LaCarte
 import qualified LaCarte2
-
 import qualified Contracts
-
+import qualified Contracts2
+import qualified Contracts3
+import qualified Contracts4
+import qualified SimpleLLVM
 
 main :: IO ()
-main = Contracts.main
+main = Contracts2.main

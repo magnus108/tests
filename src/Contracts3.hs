@@ -1,19 +1,19 @@
-module Contracts2
+-- brug af <$> og <|> kunne være nice
+module Contracts3
 where
+
 
 import Numeric
 import Data.List
 
+
 data Currency = USD | GBP | EUR | ZAR | KYD | CHF  deriving (Eq, Show)
 
 -- exessive use of type
-type Date = (CalendarTime, TimeStep)
-type TimeStep = Int
-type CalendarTime = ()
+type Date = Int
 
-
-mkDate :: TimeStep -> Date
-mkDate s = ((),s)
+mkDate :: Int -> Date
+mkDate s = s
 
 time0 :: Date
 time0 = mkDate 0
@@ -148,9 +148,9 @@ data Model = Model {
   rateModel :: Currency -> PR Double
   }
 
-exampleModel :: CalendarTime -> Model
-exampleModel modelDate = Model {
-  modelStart = (modelDate,0),
+exampleModel :: Model
+exampleModel = Model {
+  modelStart = 0,
   disc = disc,
   exch = exch,
   absorb = absorb,
@@ -246,8 +246,8 @@ konstSlices x = nextSlice [x]
 datePr :: PR Date
 datePr = PR $ timeSlices [time0]
 
-timeSlices :: (Num t1,Enum t1) => [(t, t1)] -> [[(t, t1)]]
-timeSlices sl@((s,t):_) = sl : timeSlices [(s,t+1) | _ <- [0..t+1]]
+timeSlices :: (Num t1, Enum t1) => [t1] -> [[t1]]
+timeSlices sl@(t:_) = sl : timeSlices [t+1 | _ <- [0..t+1]]
 
 condPr :: PR Bool -> PR a -> PR a -> PR a
 condPr = lift3Pr (\b tru fal -> if b then tru else fal)
@@ -290,7 +290,7 @@ instance Eq a => Eq (PR a) where
 
 
 xm :: Model
-xm = exampleModel ()
+xm = exampleModel
 
 evalX :: Contract -> PR Double
 evalX = evalC xm USD
@@ -300,13 +300,13 @@ zcb t x k = cWhen (at t) (scale (konst x) (one k))
 
 
 c1 :: Contract
-c1 = zcb t1 10 USD `cAnd` zcb (mkDate 4) 10 USD
+c1 = zcb t1 10 USD `cAnd` c11
 
 t1 :: Date
 t1 = mkDate t1Horizon
 
-t1Horizon :: TimeStep
-t1Horizon = 2
+t1Horizon :: Date
+t1Horizon = 40
 
 c11 :: Contract
 c11 = european (mkDate 2)
@@ -344,6 +344,8 @@ tests = and [testK
             ,testProb
             ,testPr1]
 
+
+
 chartUrl :: [Double] -> String
 chartUrl vs = "http://chart.apis.google.com/chart?chs=300x200&cht=lc&chxt=x,y&chg=20,25,2,5&chxr=0,0,"
               ++ (show $ length vs - 1)
@@ -365,8 +367,9 @@ chartScale ys upper =
 c1ExpectedValueUrl :: String
 c1ExpectedValueUrl = chartUrl $ expectedValuePr pr1
 
+
 main :: IO ()
 main = do
   print "notice the probability now"
   print $ c1ExpectedValueUrl
-  print  $ expectedValuePr $ evalX c1
+  print $ expectedValuePr $ evalX c1
