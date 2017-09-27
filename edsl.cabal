@@ -35,6 +35,7 @@ library
                        Contracts2,
                        Contracts3,
                        Contracts4,
+                       Contracts5,
                        SimpleLLVM
   build-depends:       base >= 4.7 && < 5
                      , template-haskell >= 2.11 && < 3

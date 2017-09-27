@@ -1,7 +1,7 @@
 module Contracts4
 where
 
-import Control.Monad.Reader
+--import Control.Monad.Reader
 
 
 

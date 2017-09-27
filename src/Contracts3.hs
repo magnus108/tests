@@ -1,4 +1,8 @@
 -- brug af <$> og <|> kunne være nice
+-- JEG skal finde udaf hvordan renter virker... altså disc
+-- jeg skal finde ud af hvordan european giver mening????
+-- side 50 i werkahnfelt
+-- SKAL ALT VÆRE KONTRAKTER!?!??!?!??!?!?
 module Contracts3
 where
 
@@ -10,9 +14,9 @@ import Data.List
 data Currency = USD | GBP | EUR | ZAR | KYD | CHF  deriving (Eq, Show)
 
 -- exessive use of type
-type Date = Int
+type Date = Double
 
-mkDate :: Int -> Date
+mkDate :: Double -> Date
 mkDate s = s
 
 time0 :: Date
@@ -120,7 +124,7 @@ american :: (Date, Date) -> Contract -> Contract
 american (t1, t2) = anytime (between t1 t2)
 
 between :: Date -> Date -> Obs Bool
-between t1 t2 = lift2 (&&) (date %>= konst t1) (date %<= konst t2)
+between t1 t2 = lift2 (&&) (date %>= (konst t1)) (date %<= (konst t2))
 
 newtype PR a = PR { unPr :: [RV a] } deriving Show
 
@@ -183,6 +187,7 @@ exampleModel = Model {
          if and bRv -- test for horizon
            then [pRv]
            else let rest@(nextSlice:_) = discCalc bs ps rs
+                    --discSlice = zipWith (\x r -> x) (prevSlice nextSlice) rateRv
                     discSlice = zipWith (\x r -> x / (1 + r/100)) (prevSlice nextSlice) rateRv
                     thisSlice = zipWith3 (\b p q -> if b then p else q) -- allow for partially discounted slices
                                   bRv pRv discSlice
@@ -223,7 +228,7 @@ evalC :: Model -> Currency -> Contract -> PR Double
 evalC (Model modelDate disc exch absorb rateModel) k = eval    -- punning on record fieldnames for conciseness
   where eval Zero           = bigK 0
         eval (One k2)       = exch k k2
-        eval (Give c)       = -(eval c)
+        eval (Give c)       = -(eval c) --bigK (-1) * (eval c)-- eval (scale (Obs (\t -> (-1))) c)-- -(eval c)
         eval (o `Scale` c)  = evalO o * eval c
         eval (c1 `And` c2)  = eval c1 + eval c2
         eval (c1 `Or` c2)   = max (eval c1) (eval c2)
@@ -285,6 +290,7 @@ instance Ord a => Ord (PR a) where
   max = lift2Pr max
 
 
+
 instance Eq a => Eq (PR a) where
   (PR a) == (PR b) = a == b
 
@@ -299,21 +305,198 @@ zcb :: Date -> Double -> Currency -> Contract
 zcb t x k = cWhen (at t) (scale (konst x) (one k))
 
 
+
+--zcb :: Date -> Double -> Currency -> Contract
+--zcb t x k = cUntil (at t) (scale (konst x) (one k))
+--zcb = absorbEx 
+
+{-
+--- Denne kan jo laves til en pension
+minKaptialPensionsOprettelse =  17.09.19.1997
+minKaptialPensionsSlut = 17.09.2007 
+minPensionsAlder = 17.09.2017 
+myMonthlyPayCheck = 30.000 DKK
+myWorkplace = DTU
+
+samletKapital = standartKapital minKaptialPensionsOprettelse minKaptialPensionsSlut minPensionsAlder myMonthlyPayCheck myWorkplace
+
+
+////////////////////
+DTU x = 
+myMonthlyPayCheck12p = x * 0.12 
+(myMonthlyPayCheck12p * (⅓), myMonthlyPayCheck12p  * (⅔))
+
+standartKapital a b c d e = 
+(x, y) =  e d 
+minInklAmbKaptialPensionsBetaling  = inklAmbKapitalPensionPaymentMonthly  a b x
+employeeInklAmbKaptialPensionsBetaling  = inklAmbKapitalPensionPaymentMonthly  a b y
+
+minInklAmbKaptialPensionsUdBetaling = receive c minInklAmbKaptialPensionsBetaling and receive c employeeInklAmbKaptialPensionsBetaling
+
+samletKapital = (minInklAmbKaptialPensionsUdBetaling * 1.1) and minInklAmbKaptialPensionsBetaling
+-}
+
+
+--- DETTE KAN VI LAVE TIL DTU 20 ÅRS PAKKEN
+
+
+mt0 :: Double
+mt0 = 0
+
+mt1 :: Double
+mt1 = 10
+
+mt2 :: Double
+mt2 = 20
+
+curr :: Currency
+curr = USD
+
+mct :: Double
+mct = 30000
+
+mwp = dtu
+
+-- måske regn med nemmmere %%
+-- måske regn med nemmmere %%
+-- måske regn med nemmmere %%
+-- måske regn med nemmmere %%
+-- måske regn med nemmmere %%
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+-- JEG TROR IKKE AT PROCENTER SKAL LÆGGES TI L HER MEN DET SKAL SKE I RENTEMODELLEN
+dtu x =
+  let
+    p12 = x * 0.12
+  in
+    ( 0.33 * p12, 0.66 * p12) --hvormeget du betaler og hvor meget arbejdsgiver betaler
+
+
+inklAmbKapitalPensionPaymentAnnual a b x curr =
+  -- der her er sku nok forkert
+  foldl (\acc t -> acc `cAnd` give ( zcb (mkDate t) x curr)) zero [a..b]
+  -- make a list of a to b payments
+
+
+standartKapital a b c e curr d =
+  let
+    (x, y) = e d
+
+    x1 = (b - a) * x --betaling over 10 år fra mig inlk amb
+
+    y1 = (b - a) * y -- betaling over 10 år fra employee inkl amb
+
+    minInklAmbKapitalPensionsBetaling =
+      inklAmbKapitalPensionPaymentAnnual a b x curr
+
+    minInklAmbKapitalPensionsUdBetaling =
+      y1 + x1
+
+
+    samletKapital =
+      zcb (mkDate c) (1.1 * minInklAmbKapitalPensionsUdBetaling) curr
+      `cAnd` minInklAmbKapitalPensionsBetaling
+
+      --zcb from a to b
+
+  in
+    samletKapital
+
+
+standartKapital1020 = standartKapital mt0 mt1 mt2
+
+standartKapital1020DTU = standartKapital1020 dtu curr
+
+samlet = standartKapital1020DTU mct
+
+---`cAnd` give (zcb (mkDate 15) 20000 USD)
+   --             `cAnd` zcb (mkDate 21) 40000 USD
+
+
+
+cg a b c d =
+     zcb (mkDate a) 100 USD `cAnd`
+     zcb (mkDate b) 100 USD `cAnd`
+     zcb (mkDate c) 100 USD `cAnd`
+     zcb (mkDate d) 100 USD
+
+
+
 c1 :: Contract
-c1 = zcb t1 10 USD `cAnd` c11
+c1 = samlet
+
+ {-
+  give (zcb (mkDate 0) 100 USD) `cAnd`
+  give (zcb (mkDate 1) 100 USD) `cAnd`
+  give (zcb (mkDate 2) 100 USD) `cAnd`
+  give (zcb (mkDate 3) 100 USD) `cAnd`
+  give (zcb (mkDate 4) 100 USD) `cAnd`
+  give (zcb (mkDate 5) 100 USD) `cAnd`
+  give (zcb (mkDate 6) 100 USD) `cAnd`
+  give (zcb (mkDate 7) 100 USD) `cAnd`
+  give (zcb (mkDate 8) 100 USD) `cAnd`
+  give (zcb (mkDate 9) 100 USD) `cAnd`
+  (zcb (mkDate 10) 210 USD) `cAnd`
+  (zcb (mkDate 11) 210 USD) `cAnd`
+  (zcb (mkDate 12) 210 USD) `cAnd`
+  (zcb (mkDate 13) 210 USD) `cAnd`
+  (zcb (mkDate 14) 210 USD) `cAnd`
+  (zcb (mkDate 15) 210 USD) `cAnd`
+  (zcb (mkDate 16) 210 USD) `cAnd`
+  (zcb (mkDate 17) 210 USD) `cAnd`
+  (zcb (mkDate 18) 210 USD) `cAnd`
+  (zcb (mkDate 19) 210 USD)
+-}
+
+--give (cg 0 1 2 3) `cAnd` (scale (konst 1.5) (cg 4 5 6 7))
+
+
+--`andGive`
+--    zcb (mkDate 2) 10 USD
+
+--     zcb (mkDate 10) 221.5 USD `cAnd`
+--     zcb (mkDate 20) 332.3 USD `cAnd`
+--     zcb (mkDate 30) 444.4 USD `cAnd`
+--     zcb (mkDate 40) 555.3 USD `cAnd`
+--     zcb (mkDate 50) 666.3 USD `cAnd`
+--     zcb (mkDate 3) 777.3 USD
+
+
+--c11 `cAnd` c22 `cAnd` (zcb (mkDate 50) 3 USD)
 
 t1 :: Date
 t1 = mkDate t1Horizon
 
 t1Horizon :: Date
-t1Horizon = 40
+t1Horizon = 30
 
 c11 :: Contract
 c11 = european (mkDate 2)
         (zcb (mkDate 20) 0.4 USD `cAnd`
         zcb (mkDate 30) 9.3 USD `cAnd`
-        zcb (mkDate 40) 109.3 USD `cAnd`
-        give (zcb (mkDate 12) 10 USD))
+        zcb (mkDate 40) 109.3 USD `andGive`
+        (zcb (mkDate 12) 100 USD))
+
+
+c22 :: Contract
+c22 = european (mkDate 14)
+        (zcb (mkDate 20) 0.4 USD `cAnd`
+        zcb (mkDate 30) 9.3 USD `cAnd`
+        zcb (mkDate 40) 109.3 USD `andGive`
+        (zcb (mkDate 24) 100 USD))
+
 
 pr1 :: PR Double
 pr1 = evalX c1
@@ -347,7 +530,7 @@ tests = and [testK
 
 
 chartUrl :: [Double] -> String
-chartUrl vs = "http://chart.apis.google.com/chart?chs=300x200&cht=lc&chxt=x,y&chg=20,25,2,5&chxr=0,0,"
+chartUrl vs = "http://chart.apis.google.com/chart?chs=400x300&cht=lc&chxt=x,y&chg=20,25,2,5&chxr=0,0,"
               ++ (show $ length vs - 1)
               ++ "|1," ++ (showFFloat (Just 1) ymin ",")
                        ++ (showFFloat (Just 1) ymax "&chd=t:")
@@ -365,11 +548,13 @@ chartScale ys upper =
 
 
 c1ExpectedValueUrl :: String
-c1ExpectedValueUrl = chartUrl $ expectedValuePr pr1
+c1ExpectedValueUrl = chartUrl $ expectedValuePr $ takePr 23 pr1
 
 
 main :: IO ()
 main = do
   print "notice the probability now"
   print $ c1ExpectedValueUrl
-  print $ expectedValuePr $ evalX c1
+--  print $ expectedValuePr $ evalX c1
+  print $ expectedValuePr $ takePr 23  $ evalX c1
+  --this is all good
