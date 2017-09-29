@@ -1,8 +1,9 @@
--- brug af <$> og <|> kunne være nice
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+ -- brug af <$> og <|> kunne være nice
 -- JEG skal finde udaf hvordan renter virker... altså disc
 -- jeg skal finde ud af hvordan european giver mening????
 -- side 50 i werkahnfelt
--- SKAL ALT VÆRE KONTRAKTER!?!??!?!??!?!?
+-- SKAL ALT VÆRE KONTRAKTER!?!??!?!??!?!? altså bruge ikke zcb men when osv..
 module Contracts3
 where
 
@@ -14,10 +15,11 @@ import Data.List
 data Currency = USD | GBP | EUR | ZAR | KYD | CHF  deriving (Eq, Show)
 
 -- exessive use of type
-type Date = Double
+newtype Date = Date { unDate :: Double }
+  deriving (Enum, Eq, Ord, Num, Fractional)
 
 mkDate :: Double -> Date
-mkDate s = s
+mkDate = Date
 
 time0 :: Date
 time0 = mkDate 0
@@ -77,6 +79,12 @@ cUntil = Until
 andGive :: Contract -> Contract -> Contract
 andGive c d = c `cAnd` give d
 
+giveAnd :: Contract -> Contract -> Contract
+giveAnd c d = give c `cAnd` d
+
+
+(&) :: Contract -> Contract -> Contract
+(&) = And
 
 konst :: a -> Obs a
 konst k = Obs (\t -> bigK k)
@@ -301,8 +309,8 @@ xm = exampleModel
 evalX :: Contract -> PR Double
 evalX = evalC xm USD
 
-zcb :: Date -> Double -> Currency -> Contract
-zcb t x k = cWhen (at t) (scale (konst x) (one k))
+--zcb :: Date -> Double -> Currency -> Contract
+--zcb t x k = cWhen (at t) (scale (konst x) (one k))
 
 
 
@@ -339,7 +347,7 @@ samletKapital = (minInklAmbKaptialPensionsUdBetaling * 1.1) and minInklAmbKaptia
 
 --- DETTE KAN VI LAVE TIL DTU 20 ÅRS PAKKEN
 
-
+{-
 mt0 :: Double
 mt0 = 0
 
@@ -356,6 +364,59 @@ mct :: Double
 mct = 30000
 
 mwp = dtu
+
+
+mt20 :: Date
+mt20 = mkDate 0
+
+mt21 :: Date
+mt21 = mkDate 10
+
+mt22 :: Date
+mt22 = mkDate 20
+
+
+mc2c :: Contract
+mc2c = scale (konst 30000) (one USD)
+
+
+dtu2 :: Contract -> (Contract, Contract)
+dtu2 x =
+  let
+    p12 = scale (konst 0.12) x
+    m13 = scale (konst 0.33) p12
+    e23 = scale (konst 0.66) p12
+  in
+    (m13, e23) --hvormeget du betaler og hvor meget arbejdsgiver betaler
+
+standartKapital2 d1 d2 d3 wc ec =
+  let
+    (x, y) = wc ec
+
+    period = (d2 - d1)
+
+    -- overvej at fix date
+    x1 = scale (konst period) x --betaling over 10 år fra mig inlk amb
+
+    y1 = scale (konst period) y -- betaling over 10 år fra employee inkl amb
+
+    minInklAmbKapitalPensionsBetaling =
+      inklAmbKapitalPensionPaymentAnnual2 d1 d2 x
+
+    minInklAmbKapitalPensionsUdBetaling =
+      x1 `cAnd` y1
+
+
+    samletKapital =
+--zcb t x k = cWhen (at t) (scale (konst x) (one k))
+      cWhen (at d3) (scale (konst 1.1) minInklAmbKapitalPensionsUdBetaling)
+      `cAnd` minInklAmbKapitalPensionsBetaling
+
+      --zcb from a to b
+
+  in
+    samletKapital
+
 
 -- måske regn med nemmmere %%
 -- måske regn med nemmmere %%
@@ -390,6 +451,12 @@ inklAmbKapitalPensionPaymentAnnual a b x curr =
   -- make a list of a to b payments
 
 
+inklAmbKapitalPensionPaymentAnnual2 :: Date -> Date -> Contract -> Contract
+inklAmbKapitalPensionPaymentAnnual2 d1 d2 x =
+  -- der her er sku nok forkert
+  foldl (\acc t -> acc `cAnd` give ( cWhen (at (mkDate t)) x)) zero [d1..d2]
+
+
 standartKapital a b c e curr d =
   let
     (x, y) = e d
@@ -413,14 +480,22 @@ standartKapital a b c e curr d =
 
   in
     samletKapital
+-}
+
+--standartKapital1020 = standartKapital mt0 mt1 mt2
+
+--standartKapital1020DTU = standartKapital1020 dtu curr
+
+--samlet = standartKapital1020DTU mct
 
 
-standartKapital1020 = standartKapital mt0 mt1 mt2
 
-standartKapital1020DTU = standartKapital1020 dtu curr
 
-samlet = standartKapital1020DTU mct
 
+
+
+
+--samlet2 = standartKapital2 mt20 mt21 mt22 dtu2 mc2c
 ---`cAnd` give (zcb (mkDate 15) 20000 USD)
    --             `cAnd` zcb (mkDate 21) 40000 USD
 
@@ -435,9 +510,16 @@ cg a b c d =
 
 
 c1 :: Contract
-c1 = samlet
-
- {-
+c1 =
+  european (mkDate 4)(
+  zcb (mkDate 17) 300 USD `andGive`
+  zcb (mkDate 4) 160 USD
+  ) 
+  
+  --samlet
+--c11
+  --samlet2
+{-
   give (zcb (mkDate 0) 100 USD) `cAnd`
   give (zcb (mkDate 1) 100 USD) `cAnd`
   give (zcb (mkDate 2) 100 USD) `cAnd`
@@ -479,23 +561,29 @@ c1 = samlet
 t1 :: Date
 t1 = mkDate t1Horizon
 
-t1Horizon :: Date
+t1Horizon :: Double
 t1Horizon = 30
 
+{-
 c11 :: Contract
-c11 = european (mkDate 2)
-        (zcb (mkDate 20) 0.4 USD `cAnd`
-        zcb (mkDate 30) 9.3 USD `cAnd`
-        zcb (mkDate 40) 109.3 USD `andGive`
-        (zcb (mkDate 12) 100 USD))
+c11 = european (mkDate 1)
+        (zcb (mkDate 3) 150 USD `andGive`
+        (zcb (mkDate 2) 100 USD)) -- `cAnd` zcb (mkDate 11) 100 USD
+-}
+
+-- konklusion.. grafen viser købsprisen for et tidspunk
+-- med pakke løsninger vil der måske være european option da der kan gå nogle
+-- år før man faktisk tilkøber sig pensionen.....
 
 
+{-
 c22 :: Contract
 c22 = european (mkDate 14)
         (zcb (mkDate 20) 0.4 USD `cAnd`
         zcb (mkDate 30) 9.3 USD `cAnd`
         zcb (mkDate 40) 109.3 USD `andGive`
         (zcb (mkDate 24) 100 USD))
+        -}
 
 
 pr1 :: PR Double
@@ -558,3 +646,276 @@ main = do
 --  print $ expectedValuePr $ evalX c1
   print $ expectedValuePr $ takePr 23  $ evalX c1
   --this is all good
+
+
+zcb :: Date -> Double -> Currency -> Contract
+zcb t x k = cWhen (at t) (scale (konst x) (one k))
+
+
+
+
+
+
+
+
+
+
+
+
+
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+--general DEHER FUCKER måske MEGET!
+zcb1 :: Date -> Contract -> Contract
+zcb1 t c = cWhen (at t) c
+
+
+gzcb1 :: Date -> Contract -> Contract
+gzcb1 t c = give (zcb1 t c)
+
+
+
+
+
+
+
+
+--IMPLEMENT BETTER SE LIGHEDERNE!!!!!!!!!
+annualGive :: Date -> Date -> Contract -> Contract
+annualGive d1 d2 x =
+  foldl cAnd zero [ give ( cWhen ( at t ) x) | t <- [d1..d2] ]
+
+
+annualReceive :: Date -> Date -> Contract -> Contract
+annualReceive d1 d2 x =
+  foldl cAnd zero [ ( cWhen ( at t ) x) | t <- [d1..d2] ]
+
+--join :: [Contract] -> Contract
+--join = foldl cAnd
+
+
+--policy
+
+
+
+
+
+
+
+
+
+
+--naive
+
+
+-- Indbetaling
+
+deposit :: Date -> Contract -> Contract
+deposit = gzcb1
+
+--- ANNNUALGIVE SKAL KALDE ANNUAL DEPOSIT
+annualDeposit :: Date -> Date -> Contract -> Contract
+annualDeposit = annualGive
+
+
+
+--- SER DU LIGHEDEN HER OG MELLEM ANNUALRECEIVE??!?!
+withdraw :: Date -> Contract -> Contract
+withdraw  = zcb1
+
+-- Udbetaling
+annualWithdraw :: Date -> Date -> Contract -> Contract
+annualWithdraw  = annualGive
+
+
+
+-- Ratepension
+-- Jeg mangler her at begrænse datoer
+-- Jeg kunne tage en record med datoer.
+-- straf bør kun gælde en ratepension!
+-- PHANTOM TYPER!!!!!!!!!!!!!!!!!!
+-- contract a =
+-- ratepension = Contract RATEpension!!!!!! DIS ONE!
+-- PEANUM NUMBERS???
+-- eller måske 
+-- rateInd = Contract rateind
+-- rateUd = Contract rateUd
+--
+-- er der noget som er en maybe fx oprettelse.. IKKE MAYBE BLOT ZERO!!!!... dog kan man ikke blot have en oprettelse uden andet
+--
+--
+-- hvad ligger i interest model
+--  inflation
+--  renter
+--  pal-skat
+--  ikke-faste omskostninger
+--
+-- hvad kan jeg ikke se
+--  max indbetaling til ratepension
+--  trækkes fra skattemæssigt indkomstgrundlat
+--  folkepension
+
+-- HVOr kommer renter virkelig fra??
+
+payment50 :: Contract
+payment50 = scale (konst 50) (one USD)
+
+date0 :: Date
+date0 = mkDate 0
+
+date10 :: Date
+date10 = mkDate 10
+
+date15 :: Date
+date15 = mkDate 15
+
+
+ratepension :: Date -> Date -> Date -> Date ->
+  Contract -> Contract -> Contract -> Contract
+    -> Contract
+ratepension d1 d2 d3 d4 x1 x2 x3 x4
+  = constructionFee d1 x1
+  & pension1 d1 d2 d3 d4 x2
+  & adminFee d1 d4 x3
+  & investFee d1 d4 x4
+
+
+
+---depositYears kan laves som hjælpe function
+-- arbejd også med denne mere for great benifits
+-- RETURN TUPLE????
+-- mit eneste mod dette er at det kan være  man får bonusser!
+-- men ligger bonusen i ens rate pension?!
+-- doubtit... slå annualgive og receivesammen..
+-- ikke særligsikker her
+-- MEN DER ER KUN DEPENDANCIES MELLEM DE 2
+-- LAV STRUCKTUR DEER ER SAFE
+pension :: Date -> Date -> Date -> Date -> Contract -> Contract -> Contract
+pension d1 d2 d3 d4 x2 x3
+  = annualGive d1 d2 x2
+  & annualReceive d3 d4 x3
+
+
+pension1 :: Date -> Date -> Date -> Date -> Contract -> Contract
+pension1 d1 d2 d3 d4 x =
+  pension d1 d2 d3 d4 x (scale (konst (unDate ((d2-d1)/(d4-d3)))) x)
+
+
+ratepension1 :: Date -> Date -> Date -> Date
+  -> Contract -> Contract -> Contract -> Contract -> Contract
+ratepension1 d1 d2 d3 d4 x1 x2 x3 x4 =
+  ratepension d1 d2 d3 d4 x1 x2 x3 x4
+
+
+ratepension2 :: Date -> Date -> Date
+  -> Contract -> Contract -> Contract -> Contract -> Contract
+ratepension2 d1 d2 d3 x1 x2 x3 x4 =
+  ratepension1 d1 d2 d2 d3 x1 x2 x3 x4
+
+
+ratepension3 :: Date -> Date -> Contract -> Contract
+ratepension3 d1 d2 x2 =
+  ratepension2 d1 d2 date15 sConstructionFee x2 sAdminFee sInvestFee -- vigtig rækkefølge
+
+
+ratepension4 :: Contract -> Contract
+ratepension4 = ratepension3 date0 date10
+
+
+ratepension5 :: Contract
+ratepension5 = ratepension4 payment50
+
+
+
+--straffer. der kunne også laves en straf glemt at betale..
+sanction :: Contract -> Contract
+sanction = scale (konst 0.6)
+
+
+--ratepension omkostninger KUN FASTE
+sConstructionFee :: Contract
+sConstructionFee = scale (konst 50) (one USD)
+
+
+constructionFee :: Date -> Contract -> Contract
+constructionFee = fee
+
+fee :: Date -> Contract -> Contract
+fee = gzcb1
+
+
+
+-- de lidt anderledes de her
+sInvestFee :: Contract
+sInvestFee = scale (konst 60) (one USD)
+
+
+sAdminFee :: Contract
+sAdminFee = scale (konst 70) (one USD)
+
+
+annualFee :: Date -> Date -> Contract -> Contract
+annualFee = annualGive --- DET HER ER IKKE GIVE
+
+
+investFee :: Date -> Date -> Contract -> Contract
+investFee = annualFee
+
+
+adminFee :: Date -> Date -> Contract -> Contract
+adminFee = annualFee
+
+
+
+
+
+
+
+
+
+
+
+
+-- Livrente ( er rate pension, med andre regler alder 115 )
+
+
+-- Aldersopsparring 
+
+
+
+
+
+-- omkostninger (frakoplet skat? )
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+{-
+data Sanction
+  = Early
+
+
+update :: Sanction -> Contract -> Contract
+update s x =
+  case s of
+    Early ->
+      scale (konst 0.6) x
+      -}
