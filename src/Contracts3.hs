@@ -1,4 +1,9 @@
+{-# LANGUAGE FlexibleInstances #-} --for Card
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+{-# LANGUAGE TemplateHaskell #-}
+
+{-# LANGUAGE DataKinds #-}
  -- brug af <$> og <|> kunne være nice
 -- JEG skal finde udaf hvordan renter virker... altså disc
 -- jeg skal finde ud af hvordan european giver mening????
@@ -6,6 +11,12 @@
 -- SKAL ALT VÆRE KONTRAKTER!?!??!?!??!?!? altså bruge ikke zcb men when osv..
 module Contracts3
 where
+
+
+
+import Refined
+
+
 
 
 import Numeric
@@ -919,3 +930,66 @@ update s x =
     Early ->
       scale (konst 0.6) x
       -}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+data Z
+
+data S a
+
+d0 = undefined :: Z --Fix
+d1 = undefined :: S Z -- Fix
+d2 = undefined :: Two
+
+
+type Zerol = Z --fix
+type Onel = S Zerol --fix
+type Two = S Onel
+type Three = S Two
+type Four = S Three
+type Five = S Four
+type Six = S Five
+
+
+class Card c
+instance Card Z
+instance Card (S c)
+
+class Card size => AdultAge size
+
+instance AdultAge Two
+instance AdultAge Three
+instance AdultAge Four
+instance AdultAge Five
+
+newtype Adult age = Adult { adultAge :: age }
+
+adult :: AdultAge age => age -> Adult age
+adult = Adult
+
+gerta = adult d2
+
+{-
+data Adult = Adult
+  { adultAge :: Refined (GreaterThan 21) Int
+  }
+
+
+lla = Adult $$(refineTH 22)
+-}
